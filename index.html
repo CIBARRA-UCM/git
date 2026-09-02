@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía Git — Del cambio local al merge request</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12161d;
+    --panel: #181e27;
+    --panel-2: #1e2530;
+    --border: #2a3240;
+    --border-soft: #232a35;
+    --text: #e9ecf1;
+    --text-muted: #8d97a6;
+    --text-dim: #626c7a;
+    --amber: #f0a83c;
+    --amber-dim: #7a5a2a;
+    --teal: #5ac8b8;
+    --red: #e2685a;
+    --green: #7fbf7f;
+    --ph: #6fb8ff;
+    --radius: 10px;
+    --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+    --sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(240,168,60,0.07), transparent),
+      radial-gradient(ellipse 700px 500px at 100% 15%, rgba(90,200,184,0.05), transparent);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a{ color: var(--teal); }
+
+  .wrap{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px 96px;
+  }
+
+  /* ---------- Hero ---------- */
+
+  header.hero{
+    padding: 64px 0 40px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .tag{
+    display: inline-block;
+    font-size: 13px;
+    color: var(--amber);
+    background: rgba(240,168,60,0.1);
+    border: 1px solid var(--amber-dim);
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+  }
+
+  h1{
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: clamp(30px, 5vw, 42px);
+    line-height: 1.15;
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .lede{
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 58ch;
+    margin: 0 0 32px;
+  }
+
+  .mock-terminal{
+    background: #0e1218;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 20px 50px -25px rgba(0,0,0,0.6);
+  }
+
+  .mock-terminal .bar{
+    display: flex;
+    gap: 7px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .mock-terminal .dot{ width: 10px; height: 10px; border-radius: 50%; background: #333c48; }
+
+  .mock-terminal .body{
+    font-family: var(--mono);
+    font-size: 13.5px;
+    padding: 18px 20px 22px;
+    color: #c7cedb;
+    overflow-x: auto;
+  }
+
+  .mock-terminal .prompt{ color: var(--text-dim); }
+  .mock-terminal .cmd{ color: var(--amber); }
+  .mock-terminal .out{ color: var(--text-dim); display:block; margin-top: 4px;}
+  .mock-terminal .ok{ color: var(--green); }
+
+  /* ---------- Quick nav ---------- */
+
+  nav.stepnav{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 28px 0 8px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 12px;
+  }
+
+  nav.stepnav a{
+    font-size: 13px;
+    text-decoration: none;
+    color: var(--text-muted);
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    transition: border-color .15s ease, color .15s ease;
+  }
+
+  nav.stepnav a:hover{ border-color: var(--teal); color: var(--text); }
+
+  /* ---------- Timeline / steps ---------- */
+
+  .timeline{
+    position: relative;
+    padding-top: 20px;
+  }
+
+  .timeline::before{
+    content: "";
+    position: absolute;
+    left: 19px;
+    top: 20px;
+    bottom: 20px;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--border), var(--border) 92%, transparent);
+  }
+
+  .step{
+    position: relative;
+    padding: 0 0 44px 60px;
+    scroll-margin-top: 24px;
+  }
+
+  .step:last-child{ padding-bottom: 8px; }
+
+  .step .num{
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--amber);
+    font-weight: 600;
+    z-index: 1;
+  }
+
+  .step h2{
+    font-size: 19px;
+    margin: 6px 0 8px;
+    font-weight: 600;
+  }
+
+  .step p.desc{
+    color: var(--text-muted);
+    font-size: 15px;
+    margin: 0 0 14px;
+    max-width: 60ch;
+  }
+
+  .step p.desc code.inline{
+    font-family: var(--mono);
+    font-size: 13.5px;
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    padding: 1px 6px;
+    border-radius: 5px;
+    color: var(--teal);
+  }
+
+  /* ---------- Code block ---------- */
+
+  .code-block{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .code-block .code-row{
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 12px 14px 18px;
+  }
+
+  .code-block pre{
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    color: #dbe1ea;
+    white-space: pre-wrap;
+    word-break: break-word;
+    flex: 1;
+  }
+
+  .code-block .ph{ color: var(--ph); }
+
+  .copy-btn{
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--sans);
+    font-size: 12.5px;
+    padding: 7px 11px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+  }
+
+  .copy-btn:hover{ border-color: var(--teal); color: var(--text); }
+  .copy-btn:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  .copy-btn svg{ width: 14px; height: 14px; flex-shrink: 0; }
+
+  .copy-btn.copied{ color: var(--green); border-color: var(--green); }
+
+  .example{
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    padding-left: 2px;
+  }
+
+  .example b{ color: var(--text-muted); font-weight: 500; }
+
+  /* ---------- Callouts ---------- */
+
+  .callout{
+    margin: 14px 0 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--amber-dim);
+    background: rgba(240,168,60,0.06);
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .callout b{ color: var(--amber); font-weight: 600; }
+
+  .callout.tip{
+    border-color: #2c4a45;
+    background: rgba(90,200,184,0.06);
+  }
+  .callout.tip b{ color: var(--teal); }
+
+  /* ---------- UI steps (merge request) ---------- */
+
+  .ui-fields{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .ui-fields div{
+    background: var(--panel-2);
+    border: 1px solid var(--border-soft);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .ui-fields div span{
+    display: block;
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+
+  /* ---------- Summary ---------- */
+
+  .summary{
+    margin-top: 56px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border-soft);
+  }
+
+  .summary h2{ font-size: 22px; margin: 0 0 6px; }
+  .summary p{ color: var(--text-muted); font-size: 15px; margin: 0 0 18px; }
+
+  .summary .code-block pre{ line-height: 1.9; }
+  .summary .code-block .code-row{ align-items: center; }
+
+  footer{
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-soft);
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  @media (max-width: 520px){
+    .wrap{ padding: 0 16px 72px; }
+    header.hero{ padding: 44px 0 32px; }
+    .step{ padding-left: 52px; }
+    .timeline::before{ left: 15px; }
+    .step .num{ width: 32px; height: 32px; font-size: 12.5px; }
+    .code-block .code-row{ flex-direction: column; }
+    .copy-btn{ align-self: flex-end; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior: auto; }
+    *{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="tag">Guía interna · flujo con ramas</span>
+    <h1>Del cambio local al merge request</h1>
+    <p class="lede">Secuencia de comandos para crear una rama de feature, confirmar tus cambios y subirlos a revisión. Cada bloque tiene su propio botón de copiar, listo para pegar en la terminal.</p>
+
+    <div class="mock-terminal">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      <div class="body">
+        <span class="prompt">PS ...\Proyectos GIT\solicitudes-justificacion&gt;</span> <span class="cmd">git branch</span>
+        <span class="out">* master</span>
+        <span class="prompt">PS ...\Proyectos GIT\solicitudes-justificacion&gt;</span> <span class="cmd">git checkout -b feature/deportista</span>
+        <span class="out ok">Switched to a new branch 'feature/deportista'</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="stepnav">
+    <a href="#s1">1. Ver rama actual</a>
+    <a href="#s2">2. Crear rama</a>
+    <a href="#s3">3. Ver cambios</a>
+    <a href="#s4">4. Preparar cambios</a>
+    <a href="#s5">5. Commit</a>
+    <a href="#s6">6. Historial</a>
+    <a href="#s7">7. Subir rama</a>
+    <a href="#s8">8. Merge request</a>
+  </nav>
+
+  <div class="timeline">
+
+    <section class="step" id="s1">
+      <div class="num">1</div>
+      <h2>Revisa en qué rama estás</h2>
+      <p class="desc">Antes de empezar un cambio nuevo, confirma tu punto de partida. El asterisco marca la rama activa.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git branch</pre>
+          <button class="copy-btn" data-copy="git branch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="s2">
+      <div class="num">2</div>
+      <h2>Crea tu rama de trabajo</h2>
+      <p class="desc">Cada funcionalidad o corrección va en su propia rama, con prefijo <code class="inline">feature/</code>. El flag <code class="inline">-b</code> la crea y te cambia a ella en un solo paso.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git checkout -b feature/<span class="ph">nombre-descriptivo</span></pre>
+          <button class="copy-btn" data-copy="git checkout -b feature/nombre-descriptivo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+      <p class="example"><b>Ejemplo real:</b> git checkout -b feature/deportista</p>
+    </section>
+
+    <section class="step" id="s3">
+      <div class="num">3</div>
+      <h2>Revisa qué cambiaste</h2>
+      <p class="desc">Lista los archivos modificados. Todo lo que aparezca en rojo aún no está en staging, así que un commit ahora no lo incluiría.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git status</pre>
+          <button class="copy-btn" data-copy="git status">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="s4">
+      <div class="num">4</div>
+      <h2>Prepara los cambios (staging)</h2>
+      <p class="desc">El punto agrega todo lo modificado en la carpeta actual. Si solo quieres un archivo puntual, reemplázalo por su ruta.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git add .</pre>
+          <button class="copy-btn" data-copy="git add .">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+      <div class="callout tip">
+        <b>Nota:</b> los avisos <code class="inline">warning: LF will be replaced by CRLF</code> son normales en Windows y no afectan tus archivos; Git solo normaliza los saltos de línea.
+      </div>
+    </section>
+
+    <section class="step" id="s5">
+      <div class="num">5</div>
+      <h2>Confirma el commit</h2>
+      <p class="desc">Guarda lo que está en staging con un mensaje breve y claro de qué cambió.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git commit -m "<span class="ph">mensaje descriptivo</span>"</pre>
+          <button class="copy-btn" data-copy='git commit -m "mensaje descriptivo"'>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+      <p class="example"><b>Ejemplo real:</b> git commit -m "new deportista destacado"</p>
+      <div class="callout">
+        <b>Si Git pide tu identidad:</b> solo la primera vez en un equipo nuevo. Ejecuta estas dos líneas y vuelve a intentar el commit.
+      </div>
+      <div class="code-block" style="margin-top:10px;">
+        <div class="code-row">
+          <pre>git config --global user.name "<span class="ph">Tu Nombre</span>"
+git config --global user.email <span class="ph">tu.correo@ucm.cl</span></pre>
+          <button class="copy-btn" data-copy='git config --global user.name "Tu Nombre"
+git config --global user.email tu.correo@ucm.cl'>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="s6">
+      <div class="num">6</div>
+      <h2>Revisa el historial</h2>
+      <p class="desc">Confirma que tu commit quedó registrado, con autor y fecha correctos, antes de subirlo.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git log</pre>
+          <button class="copy-btn" data-copy="git log">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="s7">
+      <div class="num">7</div>
+      <h2>Sube la rama al repositorio remoto</h2>
+      <p class="desc"><code class="inline">--set-upstream</code> vincula tu rama local con el remoto; solo hace falta la primera vez que subes esa rama. GitLab responderá con un enlace directo para crear el merge request.</p>
+      <div class="code-block">
+        <div class="code-row">
+          <pre>git push --set-upstream origin feature/<span class="ph">nombre-descriptivo</span></pre>
+          <button class="copy-btn" data-copy="git push --set-upstream origin feature/nombre-descriptivo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" id="s8">
+      <div class="num">8</div>
+      <h2>Crea la solicitud de fusión (Merge Request)</h2>
+      <p class="desc">Este paso es en GitLab, no en la terminal. Abre el enlace que imprimió el <code class="inline">git push</code> anterior, o entra al proyecto y crea la solicitud manualmente:</p>
+      <div class="ui-fields">
+        <div><span>De</span>feature/tu-rama</div>
+        <div><span>A</span>master</div>
+        <div><span>Persona asignada</span>tú</div>
+        <div><span>Revisor</span>quien revisa el código</div>
+      </div>
+      <div class="callout tip" style="margin-top:14px;">
+        <b>Tip:</b> escribe un título y una descripción claros de qué resuelve el cambio; facilita la revisión y queda como registro del proyecto.
+      </div>
+    </section>
+
+  </div>
+
+  <div class="summary">
+    <h2>Resumen: la secuencia completa</h2>
+    <p>Todos los comandos en orden, listos para copiar de una sola vez.</p>
+    <div class="code-block">
+      <div class="code-row">
+        <pre>git branch
+git checkout -b feature/nombre-descriptivo
+git status
+git add .
+git commit -m "mensaje descriptivo"
+git log
+git push --set-upstream origin feature/nombre-descriptivo</pre>
+        <button class="copy-btn" id="copy-all" data-copy="git branch
+git checkout -b feature/nombre-descriptivo
+git status
+git add .
+git commit -m &quot;mensaje descriptivo&quot;
+git log
+git push --set-upstream origin feature/nombre-descriptivo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          Copiar todo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Guía de referencia interna para el flujo de trabajo con ramas de feature. Reemplaza los textos en <span style="color:var(--ph)">celeste</span> por los valores de tu tarea.
+  </footer>
+
+</div>
+
+<script>
+  const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>';
+  const copyIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.getAttribute('data-copy');
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch (err) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      const label = btn.textContent.trim();
+      btn.classList.add('copied');
+      btn.innerHTML = checkIcon + (btn.id === 'copy-all' ? '¡Copiado!' : '¡Copiado!');
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = copyIcon + (btn.id === 'copy-all' ? 'Copiar todo' : 'Copiar');
+      }, 1600);
+    });
+  });
+</script>
+
+</body>
+</html>
