@@ -496,6 +496,9 @@ git config --global user.email tu.correo@ucm.cl'>
       <div class="num">7</div>
       <h2>Sube la rama al repositorio remoto</h2>
       <p class="desc"><code class="inline">--set-upstream</code> vincula tu rama local con el remoto; solo hace falta la primera vez que subes esa rama. GitLab responderá con un enlace directo para crear el merge request.</p>
+       <div class="callout">
+        <b>IMPORTANTE</b> Este comando es solo cuando la rama esta recien creada. el uso normal es solo <b>git push</b>
+      </div>
       <div class="code-block">
         <div class="code-row">
           <pre>git push --set-upstream origin feature/<span class="ph">nombre-descriptivo</span></pre>
